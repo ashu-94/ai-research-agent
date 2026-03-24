@@ -1,0 +1,529 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Research Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0f14; --surface: #13161e; --surface2: #1a1e29;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --accent: #e8c97a; --accent2: #7a9ee8; --green: #82c49a; --purple: #c482b4;
+  --text: #e8e6df; --muted: #7a7870; --faint: #3a3830;
+  --agent-sup: #c4a882; --agent-search: #82b4c4; --agent-reader: #82c49a;
+  --agent-fact: #c482b4; --agent-writer: #e8c97a; --agent-memory: #a0c8e8;
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; }
+
+/* ── Layout ── */
+.app { display: grid; grid-template-rows: 56px 1fr; height: 100vh; }
+header {
+  display: flex; align-items: center; gap: 14px; padding: 0 32px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+header h1 { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); }
+header .badge { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted);
+  background: var(--surface2); padding: 3px 8px; border-radius: 4px; letter-spacing:.05em; }
+.mem-indicator { margin-left: auto; display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); }
+.mem-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+/* ── Three-column body ── */
+.body { display: grid; grid-template-columns: 240px 1fr 320px; overflow: hidden; height: 100%; }
+
+/* ── Left sidebar: memory panel ── */
+.memory-panel {
+  border-right: 1px solid var(--border); padding: 20px 16px;
+  overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+  background: var(--surface);
+}
+.panel-title { font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--muted); font-family: 'DM Mono', monospace; }
+
+.mem-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-box { background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; }
+.stat-num { font-size: 22px; font-weight: 300; color: var(--accent); font-family: 'DM Serif Display', serif; }
+.stat-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+.topic-list { display: flex; flex-direction: column; gap: 4px; }
+.topic-item { font-size: 11px; color: var(--muted); padding: 6px 10px;
+  background: var(--surface2); border-radius: 6px; line-height: 1.4;
+  border-left: 2px solid var(--faint); cursor: pointer; transition: border-color .15s; }
+.topic-item:hover { border-left-color: var(--accent); color: var(--text); }
+
+.mem-search-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 8px 12px; font-size: 12px;
+  font-family: 'DM Sans', sans-serif; color: var(--text); outline: none;
+}
+.mem-search-input::placeholder { color: var(--muted); }
+.mem-search-input:focus { border-color: var(--accent2); }
+
+.prior-hits { display: flex; flex-direction: column; gap: 6px; }
+.prior-hit { background: var(--surface2); border: 1px solid var(--border);
+  border-left: 2px solid var(--accent2); border-radius: 6px; padding: 8px 10px; }
+.prior-hit-query { font-size: 11px; font-weight: 500; color: var(--accent2); margin-bottom: 3px; }
+.prior-hit-score { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); }
+.prior-hit-snippet { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 4px; }
+
+.clear-btn { width: 100%; background: transparent; border: 1px solid var(--border2);
+  color: var(--muted); border-radius: 8px; padding: 7px; font-size: 11px;
+  font-family: 'DM Mono', monospace; cursor: pointer; transition: all .15s; margin-top: auto; }
+.clear-btn:hover { border-color: #dc5050; color: #dc7070; }
+
+/* ── Center: main content ── */
+.main { display: flex; flex-direction: column; padding: 24px 32px; gap: 16px; overflow-y: auto; }
+
+.search-row { display: flex; gap: 10px; }
+.query-input {
+  flex: 1; background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 13px 18px; font-size: 14px;
+  font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color .2s;
+}
+.query-input::placeholder { color: var(--muted); }
+.query-input:focus { border-color: var(--accent); }
+.query-input:disabled { opacity: .45; }
+
+.run-btn { background: var(--accent); color: #0d0f14; border: none; border-radius: 10px;
+  padding: 13px 22px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: opacity .15s, transform .1s; white-space: nowrap; }
+.run-btn:hover:not(:disabled) { opacity: .85; transform: translateY(-1px); }
+.run-btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+/* progress */
+.progress-bar { height: 2px; background: var(--faint); border-radius: 1px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 1px; transition: width .5s ease; }
+
+/* prior knowledge banner */
+.prior-banner { background: rgba(122,158,232,0.08); border: 1px solid rgba(122,158,232,0.2);
+  border-radius: 8px; padding: 10px 14px; font-size: 12px; display: none; }
+.prior-banner strong { color: var(--accent2); }
+
+/* report */
+.report-area { flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 28px 32px; min-height: 360px; }
+.placeholder { height: 100%; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 10px; color: var(--muted); }
+.placeholder p { font-size: 12px; text-align: center; max-width: 220px; line-height: 1.6; }
+
+.report-content h1, .report-content h2 { font-family: 'DM Serif Display', serif; color: var(--text); margin: 1.3em 0 .5em; }
+.report-content h1 { font-size: 20px; } .report-content h2 { font-size: 17px; }
+.report-content h3 { font-size: 14px; font-weight: 500; color: var(--accent); margin: 1.1em 0 .4em; }
+.report-content p { margin-bottom: .85em; color: #ccc8be; line-height: 1.75; }
+.report-content ul, .report-content ol { padding-left: 1.4em; margin-bottom: .85em; }
+.report-content li { margin-bottom: .25em; color: #ccc8be; }
+.report-content strong { color: var(--text); font-weight: 500; }
+.report-content a { color: var(--accent2); text-decoration: none; }
+.report-content hr { border: none; border-top: 1px solid var(--border); margin: 1.4em 0; }
+.report-content code { font-family: 'DM Mono', monospace; font-size: 12px; background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
+
+.action-row { display: flex; gap: 8px; }
+.action-btn { background: transparent; border: 1px solid var(--border2); color: var(--muted);
+  border-radius: 8px; padding: 7px 14px; font-size: 12px; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all .15s; }
+.action-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Right sidebar: agent trace ── */
+.agent-panel { border-left: 1px solid var(--border); padding: 20px 18px;
+  display: flex; flex-direction: column; gap: 14px; overflow-y: auto; background: var(--surface); }
+
+.agent-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; transition: border-color .25s, background .25s; }
+.agent-card.active { border-color: var(--accent); background: rgba(232,201,122,.04); }
+.agent-card.done   { border-color: rgba(130,196,154,.35); background: rgba(130,196,154,.03); }
+.agent-card.error  { border-color: rgba(220,80,80,.4); }
+
+.agent-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.agent-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.agent-name { font-size: 12px; font-weight: 500; }
+.agent-status { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; margin-left: auto; }
+.agent-msg { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.pulsing { animation: pulse 1.1s ease-in-out infinite; }
+
+.log-section { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.log-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; max-height: 260px; }
+.log-item { font-size: 11px; font-family: 'DM Mono', monospace; padding: 5px 9px;
+  background: var(--surface2); border-radius: 5px; color: var(--muted);
+  border-left: 2px solid transparent; animation: fadeIn .25s ease; line-height: 1.4; }
+.log-item.memory { border-left-color: var(--agent-memory); color: #a0c8e8; }
+.log-item.done    { border-left-color: var(--accent); }
+.log-item.error   { border-left-color: #dc5050; color: #dc9090; }
+
+@keyframes fadeIn { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Research Assistant</h1>
+    <span class="badge">Multi-agent · LangGraph · Claude · ChromaDB</span>
+    <div class="mem-indicator">
+      <div class="mem-dot" id="memDot"></div>
+      <span id="memLabel">Memory: — reports</span>
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- ── Left: Memory panel ── -->
+    <div class="memory-panel">
+      <div class="panel-title">Vector Memory</div>
+
+      <div class="mem-stats">
+        <div class="stat-box">
+          <div class="stat-num" id="statReports">—</div>
+          <div class="stat-label">Reports stored</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="statChunks">—</div>
+          <div class="stat-label">Source chunks</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel-title" style="margin-bottom:8px">Recent topics</div>
+        <div id="topicList" class="topic-list">
+          <div class="topic-item" style="color:var(--faint);border-left-color:var(--faint)">No research yet</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel-title" style="margin-bottom:8px">Semantic search</div>
+        <input id="memSearchInput" class="mem-search-input" placeholder="Search past research…"
+          onkeydown="if(event.key==='Enter') searchMemory()"/>
+        <div id="memSearchResults" class="prior-hits" style="margin-top:8px"></div>
+      </div>
+
+      <button class="clear-btn" onclick="clearMemory()">Clear all memory</button>
+    </div>
+
+    <!-- ── Center: Query + Report ── -->
+    <div class="main">
+      <div class="search-row">
+        <input id="queryInput" class="query-input" placeholder="What do you want to research today?" />
+        <button id="runBtn" class="run-btn" onclick="startResearch()">Research</button>
+      </div>
+      <div class="progress-bar"><div id="progressFill" class="progress-fill" style="width:0%"></div></div>
+
+      <div id="priorBanner" class="prior-banner"></div>
+
+      <div id="reportArea" class="report-area">
+        <div class="placeholder">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <rect x="6" y="4" width="24" height="28" rx="3" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="11" y1="12" x2="25" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="11" y1="17" x2="21" y2="17" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="11" y1="22" x2="23" y2="22" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <p>Enter a question above — the agent pipeline will research, verify, and write a report</p>
+        </div>
+      </div>
+
+      <div class="action-row" id="actionRow" style="display:none">
+        <button class="action-btn" onclick="copyReport()">Copy markdown</button>
+        <button class="action-btn" onclick="refreshMemory()">Refresh memory stats</button>
+      </div>
+    </div>
+
+    <!-- ── Right: Agent trace ── -->
+    <div class="agent-panel">
+      <div class="panel-title">Agent pipeline</div>
+
+      <div id="card-supervisor" class="agent-card">
+        <div class="agent-header">
+          <div class="agent-dot" style="background:var(--agent-sup)"></div>
+          <span class="agent-name">Supervisor</span>
+          <span class="agent-status" id="status-supervisor">idle</span>
+        </div>
+        <div class="agent-msg" id="msg-supervisor">Plans tasks · checks memory</div>
+      </div>
+      <div id="card-search" class="agent-card">
+        <div class="agent-header">
+          <div class="agent-dot" style="background:var(--agent-search)"></div>
+          <span class="agent-name">Search</span>
+          <span class="agent-status" id="status-search">idle</span>
+        </div>
+        <div class="agent-msg" id="msg-search">Web search via Tavily</div>
+      </div>
+      <div id="card-reader" class="agent-card">
+        <div class="agent-header">
+          <div class="agent-dot" style="background:var(--agent-reader)"></div>
+          <span class="agent-name">Reader</span>
+          <span class="agent-status" id="status-reader">idle</span>
+        </div>
+        <div class="agent-msg" id="msg-reader">Summarises each source</div>
+      </div>
+      <div id="card-fact_check" class="agent-card">
+        <div class="agent-header">
+          <div class="agent-dot" style="background:var(--agent-fact)"></div>
+          <span class="agent-name">Fact-checker</span>
+          <span class="agent-status" id="status-fact_check">idle</span>
+        </div>
+        <div class="agent-msg" id="msg-fact_check">Cross-references claims</div>
+      </div>
+      <div id="card-writer" class="agent-card">
+        <div class="agent-header">
+          <div class="agent-dot" style="background:var(--agent-writer)"></div>
+          <span class="agent-name">Writer</span>
+          <span class="agent-status" id="status-writer">idle</span>
+        </div>
+        <div class="agent-msg" id="msg-writer">Synthesises report · uses memory</div>
+      </div>
+      <div id="card-store_memory" class="agent-card">
+        <div class="agent-header">
+          <div class="agent-dot" style="background:var(--agent-memory)"></div>
+          <span class="agent-name">Memory</span>
+          <span class="agent-status" id="status-store_memory">idle</span>
+        </div>
+        <div class="agent-msg" id="msg-store_memory">Saves to ChromaDB</div>
+      </div>
+
+      <div class="log-section">
+        <div class="panel-title">Activity log</div>
+        <div id="logList" class="log-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.RESEARCH_API_URL || 'http://localhost:8000';
+const AGENTS = ['supervisor','search','reader','fact_check','writer','store_memory'];
+const PROGRESS = { supervisor:10, search:30, reader:52, fact_check:70, writer:88, store_memory:100 };
+let reportMd = '';
+
+// ── Memory stats ────────────────────────────────────────────────────────────
+async function refreshMemory() {
+  try {
+    const r = await fetch(API + '/memory/stats');
+    const d = await r.json();
+    document.getElementById('statReports').textContent = d.report_count ?? 0;
+    document.getElementById('statChunks').textContent  = d.chunk_count  ?? 0;
+    document.getElementById('memLabel').textContent = `Memory: ${d.report_count ?? 0} reports`;
+
+    const list = document.getElementById('topicList');
+    if (d.recent_topics && d.recent_topics.length > 0) {
+      list.innerHTML = d.recent_topics.map(t =>
+        `<div class="topic-item" onclick="document.getElementById('queryInput').value='${t.replace(/'/g,"&#39;")}'">
+          ${t.length > 36 ? t.slice(0,36)+'…' : t}
+        </div>`
+      ).join('');
+    } else {
+      list.innerHTML = '<div class="topic-item" style="color:var(--faint);border-left-color:var(--faint)">No research yet</div>';
+    }
+  } catch(_) {}
+}
+
+async function searchMemory() {
+  const q = document.getElementById('memSearchInput').value.trim();
+  if (!q) return;
+  try {
+    const r = await fetch(API + '/memory/search?q=' + encodeURIComponent(q));
+    const d = await r.json();
+    const container = document.getElementById('memSearchResults');
+    if (!d.results || d.results.length === 0) {
+      container.innerHTML = '<div style="font-size:11px;color:var(--muted)">No matches found</div>';
+      return;
+    }
+    container.innerHTML = d.results.map(h => `
+      <div class="prior-hit">
+        <div class="prior-hit-query">${h.past_query}</div>
+        <div class="prior-hit-score">relevance: ${h.score}</div>
+        <div class="prior-hit-snippet">${h.snippet}</div>
+      </div>`).join('');
+  } catch(_) {}
+}
+
+async function clearMemory() {
+  if (!confirm('Clear all stored research from ChromaDB?')) return;
+  await fetch(API + '/memory/clear', { method: 'DELETE' });
+  refreshMemory();
+  document.getElementById('memSearchResults').innerHTML = '';
+}
+
+// ── Agent cards ─────────────────────────────────────────────────────────────
+function setAgent(id, status, msg) {
+  const card = document.getElementById('card-' + id);
+  const dot  = card && card.querySelector('.agent-dot');
+  if (!card) return;
+  card.className = 'agent-card' + (status === 'active' ? ' active' : status === 'done' ? ' done' : status === 'error' ? ' error' : '');
+  document.getElementById('status-' + id).textContent = status === 'active' ? 'running' : status;
+  if (msg) document.getElementById('msg-' + id).textContent = msg;
+  if (dot) { dot.classList.toggle('pulsing', status === 'active'); }
+}
+
+function resetAgents() {
+  AGENTS.forEach(a => setAgent(a, 'idle', null));
+}
+
+function addLog(msg, cls = '') {
+  const list = document.getElementById('logList');
+  const el = document.createElement('div');
+  el.className = 'log-item ' + cls;
+  el.textContent = msg;
+  list.appendChild(el);
+  list.scrollTop = list.scrollHeight;
+}
+
+const nodeToAgent = {
+  supervisor: 'supervisor', search: 'search', reader: 'reader',
+  fact_check: 'fact_check', writer: 'writer', store_memory: 'store_memory'
+};
+
+// ── Research flow ────────────────────────────────────────────────────────────
+// Use EventSource for proper SSE parsing
+async function startResearch() {
+  const query = document.getElementById('queryInput').value.trim();
+  if (!query) return;
+
+  reportMd = '';
+  resetAgents();
+  document.getElementById('logList').innerHTML = '';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('reportArea').innerHTML = '<div class="placeholder"><p>Pipeline running…</p></div>';
+  document.getElementById('actionRow').style.display = 'none';
+  document.getElementById('priorBanner').style.display = 'none';
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('queryInput').disabled = true;
+  setAgent('supervisor', 'active');
+
+  // Use fetch + ReadableStream to handle custom SSE events
+  try {
+    const resp = await fetch(API + '/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '', currentEvent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+
+      // sse_starlette sends \r\n\r\n — split on both CRLF and LF variants
+      const parts = buf.split(/\r?\n\r?\n/);
+      buf = parts.pop();
+
+      for (const block of parts) {
+        if (!block.trim() || block.trim().startsWith(':')) continue; // skip ping/comment frames
+        let evtName = 'message', dataStr = '';
+        for (const line of block.split(/\r?\n/)) {
+          if (line.startsWith('event: ')) evtName = line.slice(7).trim();
+          if (line.startsWith('data: '))  dataStr = line.slice(6).trim();
+        }
+        if (!dataStr) continue;
+
+        try {
+          const payload = JSON.parse(dataStr);
+          handleEvent(evtName, payload);
+        } catch(_) {}
+      }
+    }
+  } catch(e) {
+    addLog('Connection error: ' + e.message, 'error');
+  }
+
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('queryInput').disabled = false;
+  setTimeout(refreshMemory, 800);
+}
+
+function handleEvent(evtName, payload) {
+  if (evtName === 'step') {
+    const node = payload.node;
+    const agent = nodeToAgent[node];
+    if (agent) {
+      // Mark previous agents done
+      const idx = AGENTS.indexOf(agent);
+      AGENTS.slice(0, idx).forEach(a => setAgent(a, 'done'));
+      setAgent(agent, 'active');
+      if (PROGRESS[agent]) document.getElementById('progressFill').style.width = PROGRESS[agent] + '%';
+    }
+  }
+
+  if (evtName === 'log') {
+    const msg = payload.message || '';
+    const cls = msg.includes('[Memory]') ? 'memory' : msg.includes('Error') ? 'error' : '';
+    addLog(msg, cls);
+  }
+
+  if (evtName === 'prior_knowledge' && payload.hits && payload.hits.length > 0) {
+    const banner = document.getElementById('priorBanner');
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong>Memory hit:</strong> Found ${payload.hits.length} related past research session(s) — Supervisor has adapted the search plan and Writer will enrich the report with prior knowledge.`;
+  }
+
+  if (evtName === 'report') {
+    reportMd = payload.report;
+    document.getElementById('reportArea').innerHTML =
+      '<div class="report-content">' + marked.parse(reportMd) + '</div>';
+    document.getElementById('actionRow').style.display = 'flex';
+    AGENTS.slice(0, -1).forEach(a => setAgent(a, 'done'));
+    setAgent('store_memory', 'active');
+  }
+
+  if (evtName === 'saved') {
+    setAgent('store_memory', 'done', `Saved (id: ${payload.report_id})`);
+    document.getElementById('progressFill').style.width = '100%';
+    addLog(`[Memory] ChromaDB: report ${payload.report_id} persisted`, 'memory');
+  }
+
+  if (evtName === 'error') {
+    addLog('Error: ' + payload.message, 'error');
+  }
+}
+
+function copyReport() {
+  navigator.clipboard.writeText(reportMd).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy markdown', 2000);
+  });
+}
+
+document.getElementById('queryInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startResearch();
+});
+
+// Load memory stats on startup
+refreshMemory();
+setInterval(refreshMemory, 30000);
+</script>
+
+<!-- ── Built-by footer ── -->
+<style>
+.built-by {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(13,15,20,0.95); backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding: 8px 24px; display: flex; align-items: center;
+  justify-content: center; gap: 10px; z-index: 999;
+  font-family: 'DM Mono', monospace; font-size: 11px; color: #7a7870;
+}
+.built-by .author { color: #e8e6df; font-weight: 500; }
+.built-by a { color: #e8c97a; text-decoration: none; transition: opacity .15s; }
+.built-by a:hover { opacity: .75; }
+.built-by .sep { color: #3a3830; }
+.app { padding-bottom: 36px; }
+</style>
+<div class="built-by">
+  <span>Built by</span>
+  <span class="author">Ashutosh Kumar</span>
+  <span class="sep">·</span>
+  <a href="mailto:ashukv94@gmail.com">ashukv94@gmail.com</a>
+  <span class="sep">·</span>
+  <span>Multi-Agent Research Assistant</span>
+  <span class="sep">·</span>
+  <span>LangGraph · Claude · ChromaDB</span>
+</div>
+i

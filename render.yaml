@@ -1,0 +1,46 @@
+# render.yaml — Deploy backend (FastAPI) + frontend (Static) on Render
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+
+  # ── 1. FastAPI Backend ──────────────────────────────────────────────────────
+  - type: web
+    name: research-assistant-api
+    runtime: python
+    region: oregon
+    plan: free                       # upgrade to starter ($7/mo) for always-on
+    rootDir: backend                 # folder containing main.py, agents.py etc.
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false                  # set manually in Render dashboard
+      - key: TAVILY_API_KEY
+        sync: false                  # set manually in Render dashboard
+      - key: PYTHON_VERSION
+        value: "3.11"
+    disk:
+      name: chroma-storage
+      mountPath: /opt/render/project/src/backend/chroma_db
+      sizeGB: 1                      # ChromaDB persistent disk
+
+  # ── 2. Static Frontend ─────────────────────────────────────────────────────
+  - type: web
+    name: research-assistant-ui
+    runtime: static
+    rootDir: frontend                # folder containing index.html
+    staticPublishPath: .
+    envVars:
+      - key: RESEARCH_API_URL
+        fromService:
+          name: research-assistant-api
+          type: web
+          property: host             # auto-injects backend URL into frontend
+    headers:
+      - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
