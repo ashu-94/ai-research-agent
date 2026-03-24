@@ -96,11 +96,4 @@ cd frontend && python -m http.server 3000
 | `research_reports` | Full markdown reports | all-MiniLM-L6-v2 (384-dim) |
 | `source_chunks` | Individual source summaries | all-MiniLM-L6-v2 (384-dim) |
 
-## Interview Talking Points
 
-> "I added a persistent vector memory layer using ChromaDB and SentenceTransformers.
-> The Supervisor agent performs a semantic similarity search before planning new research —
-> if similar past sessions exist, it adapts the search queries to fill gaps rather than
-> repeat known information. The Writer agent also retrieves the most relevant prior source
-> chunks and injects them as additional context. Every session is stored automatically
-> by a dedicated Memory node in the LangGraph graph."
