@@ -29,6 +29,13 @@ from vector_store import get_collection_stats, retrieve_similar
 
 app = FastAPI(title="AI Research Assistant API")
 
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return """
+    <h1>AI Research Agent Running ✅</h1>
+    <p>Use /health to test API</p>
+    """
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
