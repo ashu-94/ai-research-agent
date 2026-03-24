@@ -6,7 +6,7 @@ Endpoints:
   GET  /memory/stats      — ChromaDB collection stats for the UI
   GET  /memory/search     — semantic search over past reports
   DELETE /memory/clear    — wipe the ChromaDB collections
-  GET  /health
+  GET  /healths
 """
 
 import json
@@ -143,12 +143,6 @@ def memory_clear():
 def health():
     return {"status": "ok"}
 
-from fastapi.responses import HTMLResponse
-
-@app.get("/", response_class=HTMLResponse)
-async def home():
-    with open("index.html", "r") as f:
-        return f.read()
     
 if __name__ == "__main__":
     import uvicorn
