@@ -31,8 +31,8 @@ app = FastAPI(title="AI Research Assistant API")
 
 @app.get("/")
 def serve_ui():
-    return FileResponse("frontend/index.html")
-
+    base_dir = os.path.dirname(__file__)
+    return FileResponse(os.path.join(base_dir, "index.html"))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
