@@ -19,7 +19,7 @@ import os
 load_dotenv()
 
 from fastapi import FastAPI, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
@@ -29,12 +29,9 @@ from vector_store import get_collection_stats, retrieve_similar
 
 app = FastAPI(title="AI Research Assistant API")
 
-@app.get("/", response_class=HTMLResponse)
-def home():
-    return """
-    <h1>AI Research Agent Running ✅</h1>
-    <p>Use /health to test API</p>
-    """
+@app.get("/")
+def serve_ui():
+    return FileResponse("frontend/index.html")
 
 app.add_middleware(
     CORSMiddleware,
