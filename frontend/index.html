@@ -293,7 +293,7 @@ header .badge { font-size: 10px; font-family: 'DM Mono', monospace; color: var(-
 </div>
 
 <script>
-const API = window.RESEARCH_API_URL || 'http://localhost:8000';
+const API =  window.location.origin;
 const AGENTS = ['supervisor','search','reader','fact_check','writer','store_memory'];
 const PROGRESS = { supervisor:10, search:30, reader:52, fact_check:70, writer:88, store_memory:100 };
 let reportMd = '';
