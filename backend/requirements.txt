@@ -23,4 +23,4 @@ chromadb==0.5.23
 sentence-transformers==2.7.0
 
 # Utilities
-python-dotenv==1.0.1git
+python-dotenv==1.0.1
