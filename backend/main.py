@@ -33,9 +33,11 @@ app = FastAPI(title="AI Research Assistant API")
 def serve_ui():
     base_dir = os.path.dirname(__file__)
     return FileResponse(os.path.join(base_dir, "index.html"))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -108,7 +110,8 @@ async def research(request: ResearchRequest):
                 "data": json.dumps({"message": str(e)}),
             }
 
-    return EventSourceResponse(event_generator())
+    return EventSourceResponse(event_generator(),
+                               media_type="text/event-stream")
 
 
 # ── Memory / ChromaDB endpoints ───────────────────────────────────────────────
