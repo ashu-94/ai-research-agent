@@ -138,7 +138,13 @@ def memory_clear():
 def health():
     return {"status": "ok"}
 
+from fastapi.responses import HTMLResponse
 
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    with open("index.html", "r") as f:
+        return f.read()
+    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
