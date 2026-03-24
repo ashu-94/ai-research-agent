@@ -19,6 +19,7 @@ import os
 load_dotenv()
 
 from fastapi import FastAPI, Query
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
